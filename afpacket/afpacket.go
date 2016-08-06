@@ -397,36 +397,3 @@ func (h *TPacket) pollForFirstPacket(hdr header) error {
 	h.shouldReleasePacket = true
 	return nil
 }
-
-// FanoutType determines the type of fanout to use with a TPacket SetFanout call.
-type FanoutType int
-
-const (
-	FanoutHash FanoutType = 0
-	// It appears that defrag only works with FanoutHash, see:
-	// http://lxr.free-electrons.com/source/net/packet/af_packet.c#L1204
-	FanoutHashWithDefrag FanoutType = 0x8000
-	FanoutLoadBalance    FanoutType = 1
-	FanoutCPU            FanoutType = 2
-)
-
-// SetFanout activates TPacket's fanout ability.
-// Use of Fanout requires creating multiple TPacket objects and the same id/type to
-// a SetFanout call on each.  Note that this can be done cross-process, so if two
-// different processes both call SetFanout with the same type/id, they'll share
-// packets between them.  The same should work for multiple TPacket objects within
-// the same process.
-func (h *TPacket) SetFanout(t FanoutType, id uint16) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	arg := C.int(t) << 16
-	arg |= C.int(id)
-	_, err := C.setsockopt(h.fd, C.SOL_PACKET, C.PACKET_FANOUT, unsafe.Pointer(&arg), C.socklen_t(unsafe.Sizeof(arg)))
-	return err
-}
-
-// WritePacketData transmits a raw packet.
-func (h *TPacket) WritePacketData(pkt []byte) error {
-	_, err := C.write(h.fd, unsafe.Pointer(&pkt[0]), C.size_t(len(pkt)))
-	return err
-}
