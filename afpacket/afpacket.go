@@ -26,6 +26,7 @@ import (
 )
 
 /*
+#cgo CFLAGS: -I/usr/include -I/usr/include/x86_64-linux-gnu -I/usr/include/i386-linux-gnu
 #include <linux/if_packet.h>  // AF_PACKET, sockaddr_ll
 #include <linux/if_ether.h>  // ETH_P_ALL
 #include <sys/socket.h>  // socket()
