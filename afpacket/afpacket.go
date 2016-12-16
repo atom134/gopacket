@@ -21,8 +21,9 @@ import (
 	"sync"
 	"time"
 	"unsafe"
-
 	"github.com/google/gopacket"
+	"golang.org/x/net/bpf"
+	"syscall"
 )
 
 /*
@@ -396,5 +397,21 @@ func (h *TPacket) pollForFirstPacket(hdr header) error {
 		}
 	}
 	h.shouldReleasePacket = true
+	return nil
+}
+
+func (h *TPacket) SetBPFInstructionFilter(instructions []bpf.Instruction) error {
+	rawInstructions, err := bpf.Assemble(instructions)
+	if err != nil {
+		return err
+	}
+	sockFilters := []syscall.SockFilter{}
+	for _, i := range rawInstructions {
+		sockFilters = append(sockFilters, syscall.SockFilter{Code: i.Op, Jt: i.Jt, Jf: i.Jf, K:i.K})
+	}
+	err = syscall.AttachLsf(int(h.fd), sockFilters)
+	if err != nil {
+		return errors.New("failed to set socket filter: " + err.Error())
+	}
 	return nil
 }
